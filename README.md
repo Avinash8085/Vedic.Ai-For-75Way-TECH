@@ -1,6 +1,7 @@
 # Vedic.AI
 
 Vedic.AI is a production-oriented AI diet planning platform for dietitians and patients.
+## Deployment Link - https://luminous-kataifi-b983fa.netlify.app/
 
 ## Tech Stack
 
