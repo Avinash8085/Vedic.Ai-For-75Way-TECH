@@ -1,0 +1,293 @@
+"use client";
+
+import Link from "next/link";
+import Logo from "./Logo";
+import { useState, useEffect } from "react";
+import { CgProfile } from "react-icons/cg";
+import { Moon, Sun } from "lucide-react";
+import { useThemeStore } from "@/app/lib/store/theme-store";
+
+interface User {
+  name: string;
+  email: string;
+  profilePicture: string;
+}
+
+export default function Navbar() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const { darkMode, toggleTheme } = useThemeStore();
+
+  // Check localStorage for login status on component mount and when storage changes
+  useEffect(() => {
+    const checkLoginStatus = () => {
+      const loginStatus = localStorage.getItem("isLoggedIn");
+      const userData = localStorage.getItem("userData");
+
+      if (loginStatus === "true" && userData) {
+        try {
+          const parsedUser = JSON.parse(userData) as User;
+          if (!parsedUser.name || !parsedUser.email) throw new Error("Invalid saved user");
+          setIsLoggedIn(true);
+          setUser(parsedUser);
+        } catch {
+          setIsLoggedIn(false);
+          setUser(null);
+        }
+      } else {
+        setIsLoggedIn(false);
+        setUser(null);
+      }
+    };
+
+    // Check on mount
+    checkLoginStatus();
+
+    // Listen for storage changes (when login happens from another tab/page)
+    window.addEventListener("storage", checkLoginStatus);
+
+    // Custom event listener for same-page login
+    window.addEventListener("loginStateChange", checkLoginStatus);
+
+    return () => {
+      window.removeEventListener("storage", checkLoginStatus);
+      window.removeEventListener("loginStateChange", checkLoginStatus);
+    };
+  }, []);
+
+  const linkClasses = "hover:text-green-600 transition";
+  const loginButtonClasses =
+    "bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition";
+  const signupButtonClasses =
+    "ml-3 border border-green-600 text-green-600 px-4 py-2 rounded-lg hover:bg-green-100 transition bg-white";
+
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    localStorage.removeItem("isLoggedIn");
+    localStorage.removeItem("userData");
+    setIsLoggedIn(false);
+    setUser(null);
+
+    // Dispatch custom event to update other components if needed
+    window.dispatchEvent(new Event("loginStateChange"));
+
+    if (isMenuOpen) {
+      setIsMenuOpen(false);
+    }
+  };
+
+  return (
+    <nav className="bg-[#1A3129] shadow-sm relative z-40">
+      <div className="flex items-center justify-between py-4 px-6 md:px-16">
+        <Logo />
+
+        {/* Desktop Navigation links */}
+        <ul className="hidden md:flex space-x-8 text-white">
+          <li>
+            <Link href="/" className={linkClasses}>
+              Home
+            </Link>
+          </li>
+          <li>
+            <Link href="/assessment" className={linkClasses}>
+              Dosha Assessment
+            </Link>
+          </li>
+          <li>
+            <Link href="/diet-doc" className={linkClasses}>
+              Weekly Diet Plan
+            </Link>
+          </li>
+          <li>
+            <Link href="/remedies" className={linkClasses}>
+              Remedies
+            </Link>
+          </li>
+          <li>
+            <Link href="/contact" className={linkClasses}>
+              Contact
+            </Link>
+          </li>
+        </ul>
+
+        {/* Desktop Auth Buttons / Profile Icon */}
+        <div className="hidden md:flex items-center space-x-4">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={`Switch to ${darkMode ? "light" : "dark"} mode`}
+            aria-pressed={darkMode}
+            className="inline-flex items-center gap-2 rounded-lg border border-white/30 px-3 py-2 text-sm text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-300"
+          >
+            {darkMode ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
+            <span>{darkMode ? "Light mode" : "Dark mode"}</span>
+          </button>
+          {isLoggedIn && user ? (
+            <>
+              <Link
+                href="/profile"
+                className="flex items-center text-white space-x-2"
+              >
+                <CgProfile size={32} className="text-white" />
+                <span>{user.name}</span>
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/login" className={loginButtonClasses}>
+                Login
+              </Link>
+              <Link href="/signup" className={signupButtonClasses}>
+                Signup
+              </Link>
+            </>
+          )}
+        </div>
+
+        {/* Mobile hamburger button */}
+        <button
+          className="md:hidden text-white focus:outline-none focus:ring-2 focus:ring-green-600 p-2 rounded"
+          onClick={toggleMenu}
+          aria-label="Toggle navigation menu"
+        >
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            {isMenuOpen ? (
+              <path d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
+        </button>
+      </div>
+
+      {/* Mobile menu */}
+      {isMenuOpen && (
+        <div className="md:hidden bg-[#1A3129] border-t border-green-800 relative z-50 shadow-lg">
+          <ul className="py-4 px-6 space-y-4 text-white">
+            <li>
+              <Link
+                href="/"
+                className={linkClasses}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Home
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/assessment"
+                className={linkClasses}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Dosha Assessment
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/diet-doc"
+                className={linkClasses}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Weekly Diet Plan
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/remedies"
+                className={linkClasses}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Remedies
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/contact"
+                className={linkClasses}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Contact
+              </Link>
+            </li>
+          </ul>
+
+          <div className="px-6 pb-4">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={`Switch to ${darkMode ? "light" : "dark"} mode`}
+              aria-pressed={darkMode}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-white/30 px-4 py-2 text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-300"
+            >
+              {darkMode ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
+              <span>{darkMode ? "Switch to light mode" : "Switch to dark mode"}</span>
+            </button>
+          </div>
+
+          {/* Mobile Auth Buttons / Profile Icon */}
+          <div className="px-6 pb-4 space-y-3">
+            {isLoggedIn && user ? (
+              <>
+                <div className="text-white text-center text-sm mb-2">
+                  Welcome, {user.name}!
+                </div>
+                <Link
+                  href="/profile"
+                  className="block text-center border border-white text-white px-4 py-2 rounded-lg transition"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <div className="flex justify-center items-center space-x-2">
+                    <CgProfile size={24} className="text-white" />
+                    <span>View Profile</span>
+                  </div>
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="block w-full text-center bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="block text-center bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/signup"
+                  className="block text-center border border-green-600 text-green-600 px-4 py-2 rounded-lg hover:bg-green-100 transition bg-white"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Signup
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </nav>
+  );
+}
